@@ -67,6 +67,7 @@ impl ops::Neg for &U256 {
     }
 }
 
+// quickfix that casts other uints (RHS) into u128
 impl<T> core::ops::Add<T> for U256 where T: UPrimitive {
     type Output = U256;
     fn add(self, rhs: T) -> Self::Output {
@@ -111,7 +112,7 @@ impl_sub!(U256, &U256);
 impl_sub!(&U256, U256);
 impl_sub!(&U256, &U256);
 
-
+// bitshift left
 impl core::ops::Shl<u8> for U256{
     type Output = U256;
 
@@ -130,6 +131,7 @@ impl core::ops::Shl<u8> for U256{
     }
 }
 
+// bitshift right
 impl core::ops::Shr<u8> for U256{
     type Output = U256;
 
@@ -147,145 +149,62 @@ impl core::ops::Shr<u8> for U256{
         }
     }
 }
-
 //binary MUL operator
+//Todo: optimize runtime and extend domain set to other integer types -> generics/macros 
 impl core::ops::Mul<U256> for U256 {
     type Output = U256;
     fn mul(self, rhs: U256) -> U256 {
-        println!("MUL of u128 is: {}",mul_karatsuba_u128(u128::MAX, u128::MAX));
-        let lower = mul_karatsuba_u128(self.lower, rhs.lower);
-        let higher = mul_karatsuba_u128(self.higher, rhs.higher);
-        let cross = mul_karatsuba_u128(
-            self.higher + self.lower, 
-            rhs.higher+rhs.lower
-        ) - (higher + lower);
-
-        let lower_tot = lower + (cross << 128);
-        let higher_tot = higher + (cross >> 128) + (lower_tot < lower) as u8;
-
-        higher_tot+lower_tot
+        let comp_1: U256 = mul_karatsuba_u128(self.lower, rhs.lower);
+        let comp_2: U256 = mul_karatsuba_u128(self.lower, rhs.higher) << 128;
+        let comp_3: U256 = mul_karatsuba_u128(self.higher, rhs.lower) << 128;
+        comp_1 + comp_2 + comp_3 
     }
 }
 
 //overflow safe u128 mul function through bit extension
-//todo: testing
 pub fn mul_karatsuba_u128(x: u128, y: u128) -> U256 {
-    print!("{:<8}{}","x_in:", format!("{:<64}\n", fhstr(x)));
-    print!("{:<8}{}","y_in:", format!("{:<64}\n\n", fhstr(y)));
+    // print!("{:<8}{}","x_in:", format!("{:<64}\n", fhstr(x)));
+    // print!("{:<8}{}","y_in:", format!("{:<64}\n\n", fhstr(y)));
 
-    let x_lower = x & 0xFFFFFFFFFFFFFFFF;
+    if (x <= u64::MAX as u128) && (y <= u64::MAX as u128) {
+        return U256 {higher: 0, lower: x * y};
+    }
+
+    let x_lower = x as u64 as u128;
     let x_higher = x >> 64;
-    print!("{:<8}{}", "x_lo:",format!("{:<64}\n", fhstr(x_lower)));
-    print!("{:<8}{}", "x_hi:",format!("{:<64}\n", fhstr(x_higher)));
+    // print!("{:<8}{}", "x_lo:",format!("{:<64}\n", fhstr(x_lower)));
+    // print!("{:<8}{}", "x_hi:",format!("{:<64}\n", fhstr(x_higher)));
 
-    let y_lower = y & 0xFFFFFFFFFFFFFFFF;
+    let y_lower = y as u64 as u128;
     let y_higher = y >> 64;
-    print!("{:<8}{}", "y_lo:",format!("{:<64}\n", fhstr(y_lower)));
-    print!("{:<8}{}", "y_hi:",format!("{:<64}\n\n", fhstr(y_higher)));
+    // print!("{:<8}{}", "y_lo:",format!("{:<64}\n", fhstr(y_lower)));
+    // print!("{:<8}{}", "y_hi:",format!("{:<64}\n\n", fhstr(y_higher)));
 
     let lower = x_lower * y_lower;
-    print!("{:<8}{}", "xy_lo:",format!("{:<64}\n", fhstr(lower)));
+    // print!("{:<8}{}", "xy_lo:",format!("{:<64}\n", fhstr(lower)));
     let higher = x_higher * y_higher;
-    print!("{:<8}{}", "xy_hi:",format!("{:<64}\n", fhstr(higher)));
-    let x_comb = x_higher + x_lower;
-    print!("{:<8}{}", "x_c:",format!("{:<64}\n", fhstr(x_comb)));
-    let y_comb = y_higher + y_lower;
-    print!("{:<8}{}", "y_c:",format!("{:<64}\n", fhstr(y_comb)));
-    let mut xy_comb = mul_safe_karatsuba_u128(x_comb, y_comb);
-    print!("{:<8}{}", "xy_c_hi:",format!("{:<64}\n", fhstr(xy_comb.higher)));
-    print!("{:<8}{}", "xy_c_lo:",format!("{:<64}\n", fhstr(xy_comb.lower)));
+    // print!("{:<8}{}", "xy_hi:",format!("{:<64}\n", fhstr(higher)));
+    //let x_comb = x_higher + x_lower;
+    // print!("{:<8}{}", "x_c:",format!("{:<64}\n", fhstr(x_comb)));
+    //let y_comb = y_higher + y_lower;
+    // print!("{:<8}{}", "y_c:",format!("{:<64}\n", fhstr(y_comb)));
+    let mut xy_comb = mul_karatsuba_u128(x_higher + x_lower, y_higher + y_lower);
+    // print!("{:<8}{}", "xy_c_hi:",format!("{:<64}\n", fhstr(xy_comb.higher)));
+    // print!("{:<8}{}", "xy_c_lo:",format!("{:<64}\n", fhstr(xy_comb.lower)));
     let (cross, carr_1) = xy_comb.lower.overflowing_sub(lower);
     let (cross, carr_2) = cross.overflowing_sub(higher);
     xy_comb.higher -= (carr_1 as u128 + carr_2 as u128);
-    print!("{:<8}{}", "cross:",format!("{:<64}\n\n", fhstr(cross)));
+    // print!("{:<8}{}", "cross:",format!("{:<64}\n\n", fhstr(cross)));
 
     let (lower, _carr) = lower.overflowing_add(cross<<64);
-    print!("{:<8}{}", "HI:",format!("{:<64}\n", fhstr(lower)));
+    // print!("{:<8}{}", "LO:",format!("{:<64}\n", fhstr(lower)));
     let higher = higher + (cross >> 64) + (xy_comb.higher << 64) + _carr as u128;
-    println!("{:<8}{}", "LO:",format!("{:<64}\n", fhstr(higher)));
-    let result = U256 {higher: higher, lower: lower};
-    println!("{:<8}{}", "RES:\n",result);
-    println!("{}\n\n\n",format!("{:-<64}-", ""));
-    result
+    // println!("{:<8}{}", "HI:",format!("{:<64}\n", fhstr(higher)));
+    U256 {higher: higher, lower: lower}
 }
 
-fn mul_safe_karatsuba_u128(x: u128, y: u128) -> U256 {
-    let x_lower = x & 0xFFFFFFFFFFFFFFFF;
-    let x_higher = x >> 64;
-    let y_lower = y & 0xFFFFFFFFFFFFFFFF;
-    let y_higher = y >> 64;
+// todo: division
 
-    let higher = x_higher * y_higher;
-    let lower = x_lower * y_lower;
-    let x_comb = x_higher + x_lower;
-    let y_comb = y_higher + y_lower;
-
-    let cross = x_comb * y_comb - higher - lower;
-    let (lower, carr_1) = lower.overflowing_add(cross << 64);
-    let higher = higher + (cross >> 64) + carr_1 as u128;
-    //println!("n_cross: {}, n_lower: {}, n_higher: {}", cross, lower, higher);
-    U256{higher, lower}
-}
-
-pub fn mul_karatsuba_u8(x: u8, y: u8) -> u16 {
-    let mut result = 0u16;
-    print!("{}",format!("{:<9}", fhstr(x)));
-    print!("{}",format!("{:<9}", fhstr(y)));
-    let x_lower = x & 0xF;
-    let x_higher = x >> 4;
-    print!("{}",format!("{:<9}", fhstr(x_lower)));
-    print!("{}",format!("{:<9}", fhstr(x_higher)));
-    let y_lower = y & 0xF;
-    let y_higher = y >> 4;
-    print!("{}",format!("{:<9}", fhstr(y_lower)));
-    print!("{}",format!("{:<9}", fhstr(y_higher)));
-
-    let lower = x_lower * y_lower;
-    print!("{}",format!("{:<9}", fhstr(lower)));
-    let higher = x_higher * y_higher;
-    print!("{}",format!("{:<9}", fhstr(higher)));
-    let x_comb = x_higher + x_lower;
-    print!("{}",format!("{:<9}", fhstr(x_comb)));
-    let y_comb = y_higher + y_lower;
-    print!("{}",format!("{:<9}", fhstr(y_comb)));
-    let (xy_c_hi, xy_c_lo) = nibble_mul(x_comb, y_comb);
-    print!("{}",format!("{:<9}", fhstr(xy_c_hi)));
-    print!("{}",format!("{:<9}", fhstr(xy_c_lo)));
-    let (cross, carr_1) = xy_c_lo.overflowing_sub(lower);
-    let (cross, carr_2) = cross.overflowing_sub(higher);
-    let xy_c_hi = xy_c_hi -(carr_1 as u8 + carr_2 as u8);
-    print!("{}",format!("{:<9}", fhstr(cross)));
-
-    
-    let (lower, _carr) = lower.overflowing_add(cross<<4);
-    print!("{}",format!("{:<9}", fhstr(lower)));
-    let higher = higher + (cross >> 4) + (xy_c_hi << 4) + _carr as u8;
-    print!("{}",format!("{:<9}", fhstr(higher)));
-    let result: u16 = ((higher as u16) << 8) | lower as u16;
-    print!("{}",format!("{:<9}", fhstr(result)));
-    println!("{}",format!("{:<9}", fhstr((x as u16)*(y as u16))));
-    println!("{}",format!("{:-<9}-", ""));
-    result
-}
-
-fn nibble_mul(x: u8, y: u8) -> (u8,u8) {
-    //print!("x_n: {}, y_n: {} ", x, y);
-    let x_lower = x & 0xF;
-    let x_higher = x >> 4;
-    let y_lower = y & 0xF;
-    let y_higher = y >> 4;
-
-    let higher = x_higher * y_higher;
-    let lower = x_lower * y_lower;
-    let x_comb = x_higher + x_lower;
-    let y_comb = y_higher + y_lower;
-
-    let cross = x_comb * y_comb - higher - lower;
-    let (lower, carr_1) = lower.overflowing_add(cross << 4);
-    let higher = higher + (cross >> 4) + carr_1 as u8;
-    //println!("n_cross: {}, n_lower: {}, n_higher: {}", cross, lower, higher);
-    (higher, lower)
-}
 
 use std::fmt::Write;
 use std::mem::size_of;

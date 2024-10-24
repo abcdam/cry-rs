@@ -103,38 +103,39 @@ mod tests {
         assert_eq!(t_1, t_1 * one_256);
         assert_eq!(t_1, one_256 * t_1);
 
-        //assert_eq!(U256::MAX * U256::MAX, (0u8,u128::MAX.wrapping_mul(u128::MAX)).to_u256());
+        assert_eq!(U256::MAX * U256::MAX, U256::from(1u8));
+        assert_eq!(U256::MAX * (u128::MAX, u128::MAX -1).to_u256(), U256::from(2u8));
 
-        //assert_eq!((1u8,1u8).to_u256() * (1u8,1u8).to_u256(), (2u8,1u8).to_u256());
+        assert_eq!((1u8,1u8).to_u256() * (1u8,1u8).to_u256(), (2u8,1u8).to_u256());
 
     
     }
 
 
-    //#[test]
+    #[test]
     fn time_it() {
         let start = Instant::now();
         let base: i128 = 2;
-        let runs = u64::pow(base as u64,28)-1;
+        let runs = u64::pow(base as u64,30)-1;
         let mut res = U256::ZERO;
         let mut x = U256::from(u128::MAX);
         //let mut x = U256::from(4 as u8);
         let y = U256::from( 100000 as u32);
-        for _i in 0..3 {
+        let mut counter = 0u64;
+        for _i in 0..25 {
             for _k in 0..runs {
-                x = x + &y;
-                //println!("{:?}", x);
-                //if _k % 100000000 == 0 {println!("val: {}",x)}
+                res = res + (u128::MAX).to_u256() * U256::from(u128::MAX);
+                counter +=1;
             }
             //println!("Round num. {_i}");
-            res = res + &x;
-            println!("res: {:?}", res); // force use of calc. var to avoid optimization
+            
+            
         }
 
-        
+        println!("res: {:?}", res); // force use of calc. var to avoid optimization
         let _end = Instant::now();
         let duration = start.elapsed();
-        println!("Time elapsed: {:?}", duration);
+        println!("Rounds: {}, Time elapsed: {:?}",counter, duration);
     }
 }
 
