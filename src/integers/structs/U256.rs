@@ -170,49 +170,42 @@ impl core::ops::Mul<U256> for U256 {
 //overflow safe u128 mul function through bit extension
 //todo: testing
 pub fn mul_karatsuba_u128(x: u128, y: u128) -> U256 {
-    print!("{}",format!("{:<9}", fhstr(x)));
-    print!("{}",format!("{:<9}", fhstr(y)));
+    print!("{:<8}{}","x_in:", format!("{:<64}\n", fhstr(x)));
+    print!("{:<8}{}","y_in:", format!("{:<64}\n\n", fhstr(y)));
 
     let x_lower = x & 0xFFFFFFFFFFFFFFFF;
     let x_higher = x >> 64;
-    print!("{}",format!("{:<9}", fhstr(x_lower)));
-    print!("{}",format!("{:<9}", fhstr(x_higher)));
+    print!("{:<8}{}", "x_lo:",format!("{:<64}\n", fhstr(x_lower)));
+    print!("{:<8}{}", "x_hi:",format!("{:<64}\n", fhstr(x_higher)));
 
     let y_lower = y & 0xFFFFFFFFFFFFFFFF;
     let y_higher = y >> 64;
-    print!("{}",format!("{:<9}", fhstr(y_lower)));
-    print!("{}",format!("{:<9}", fhstr(y_higher)));
+    print!("{:<8}{}", "y_lo:",format!("{:<64}\n", fhstr(y_lower)));
+    print!("{:<8}{}", "y_hi:",format!("{:<64}\n\n", fhstr(y_higher)));
 
     let lower = x_lower * y_lower;
-    print!("{}",format!("{:<9}", fhstr(lower)));
+    print!("{:<8}{}", "xy_lo:",format!("{:<64}\n", fhstr(lower)));
     let higher = x_higher * y_higher;
-    print!("{}",format!("{:<9}", fhstr(higher)));
+    print!("{:<8}{}", "xy_hi:",format!("{:<64}\n", fhstr(higher)));
     let x_comb = x_higher + x_lower;
-    print!("{}",format!("{:<9}", fhstr(x_comb)));
+    print!("{:<8}{}", "x_c:",format!("{:<64}\n", fhstr(x_comb)));
     let y_comb = y_higher + y_lower;
-    print!("{}",format!("{:<9}", fhstr(y_comb)));
+    print!("{:<8}{}", "y_c:",format!("{:<64}\n", fhstr(y_comb)));
     let mut xy_comb = mul_safe_karatsuba_u128(x_comb, y_comb);
-    print!("{}",format!("{:<9}", fhstr(xy_comb.higher)));
-    print!("{}",format!("{:<9}", fhstr(xy_comb.lower)));
+    print!("{:<8}{}", "xy_c_hi:",format!("{:<64}\n", fhstr(xy_comb.higher)));
+    print!("{:<8}{}", "xy_c_lo:",format!("{:<64}\n", fhstr(xy_comb.lower)));
     let (cross, carr_1) = xy_comb.lower.overflowing_sub(lower);
     let (cross, carr_2) = cross.overflowing_sub(higher);
     xy_comb.higher -= (carr_1 as u128 + carr_2 as u128);
-
-    println!("");
-    println!("lo:{:x} hi:{:x}", lower, higher);
-    println!("");
-    println!("xc:{:x} yc:{:x} xyc_l:{:x} xyc_h:{:x}", x_comb, y_comb, xy_comb.lower, xy_comb.higher);
-    println!("");
-    println!("cross:{:x}", cross);
+    print!("{:<8}{}", "cross:",format!("{:<64}\n\n", fhstr(cross)));
 
     let (lower, _carr) = lower.overflowing_add(cross<<64);
-    println!("{}",format!("{:<9}", fhstr(lower)));
+    print!("{:<8}{}", "HI:",format!("{:<64}\n", fhstr(lower)));
     let higher = higher + (cross >> 64) + (xy_comb.higher << 64) + _carr as u128;
-    println!("{}",format!("{:<9}", fhstr(higher)));
+    println!("{:<8}{}", "LO:",format!("{:<64}\n", fhstr(higher)));
     let result = U256 {higher: higher, lower: lower};
-    println!("RESULT: {}", result);
-    println!("");
-    println!("");
+    println!("{:<8}{}", "RES:\n",result);
+    println!("{}\n\n\n",format!("{:-<64}-", ""));
     result
 }
 

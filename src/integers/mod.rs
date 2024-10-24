@@ -141,25 +141,17 @@ mod tests {
 #[cfg(feature = "integer_snips")]
 mod tests {
     #[test]
-    fn test_karatsuba_u8(){
-        println!("{:<9}{:<9}{:<9}{:<9}{:<9}{:<9}{:<9}{:<9}{:<9}{:<9}{:<9}{:<9}{:<9}{:<9}{:<9}{:<9}{:<9}",
-        "x_in", "y_in", "x_lo", "x_hi", 
-        "y_lo", "y_hi", "xy_lo", "xy_hi", 
-        "x_c", "y_c", "xy_c_hi", "xy_c_lo", "cross", 
-        "HI", "LO", "RES", "REAL"
-        );
-        use super::structs::U256::mul_karatsuba_u8;
-        assert_eq!(mul_karatsuba_u8(1u8,1u8), 1u16);
-        assert_eq!(mul_karatsuba_u8(1u8,0u8), 0u16);
-        assert_eq!(mul_karatsuba_u8(0u8,1u8), 0u16);
+    fn test_karatsuba_u128(){
+        use super::structs::U256::*;
+        assert_eq!(mul_karatsuba_u128(1u128,1u128), U256::from(1u16));
+        assert_eq!(mul_karatsuba_u128(1u128,0u128), U256::from(0u16));
+        assert_eq!(mul_karatsuba_u128(0u128,1u128), U256::from(0u16));
 
-        assert_eq!(mul_karatsuba_u8(u8::MAX,1u8), (u8::MAX as u16));
-        assert_eq!(mul_karatsuba_u8(u8::MAX,2u8), (u8::MAX as u16)*2);
-        assert_eq!(mul_karatsuba_u8(u8::MAX,4u8), (u8::MAX as u16)*4);
-        assert_eq!(mul_karatsuba_u8(u8::MAX,127u8), (u8::MAX as u16)*127);
-        assert_eq!(mul_karatsuba_u8(u8::MAX,128u8), (u8::MAX as u16)*128);
-        assert_eq!(mul_karatsuba_u8(u8::MAX,u8::MAX), (u8::MAX as u16)*(u8::MAX as u16));
+        assert_eq!(mul_karatsuba_u128(u128::MAX,1u128), U256::from(u128::MAX));
+        assert_eq!(mul_karatsuba_u128(u128::MAX,2u128), (1u8,u128::MAX-1).to_u256());
+        assert_eq!(mul_karatsuba_u128(u128::MAX,4u128), (3u8,u128::MAX-3).to_u256());
+        assert_eq!(mul_karatsuba_u128(u128::MAX,2u128.pow(127)-1), (2u128.pow(127)-2, 2u128.pow(127)+1).to_u256());
+        assert_eq!(mul_karatsuba_u128(u128::MAX,2u128.pow(127)), (2u128.pow(127)-1,2u128.pow(127)).to_u256());
+        assert_eq!(mul_karatsuba_u128(u128::MAX,u128::MAX), (u128::MAX - 1, 1u8).to_u256());
     }
-    
-
 }
