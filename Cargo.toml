@@ -7,9 +7,4 @@ edition = "2021"
 rand="0.8"
 num-bigint="0.4.6"
 rayon = "1.7"
-
-[features]
-U256 = []
-bigU256 = []
-integer_snips = []
-main_test = []
+rand_chacha="0.3.1"
